@@ -1,4 +1,5 @@
 using Common;
+using Inventory.Service.Clients;
 using Inventory.Service.Dtos;
 using Inventory.Service.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -7,9 +8,10 @@ namespace Inventory.Service.Controllers;
 
 [ApiController]
 [Route("items")]
-public class ItemsController(IRepository<InventoryItem> itemsRepository) : ControllerBase
+public class ItemsController(IRepository<InventoryItem> itemsRepository, CatalogClient catalogClient) : ControllerBase
 {
     private readonly IRepository<InventoryItem> _itemsRepository = itemsRepository;
+    private readonly CatalogClient _catalogClient = catalogClient;
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<InventoryItemDto>>> GetAsync(Guid userId)
@@ -19,10 +21,16 @@ public class ItemsController(IRepository<InventoryItem> itemsRepository) : Contr
             return BadRequest();
         }
 
-        var items = (await _itemsRepository.GetAllAsync(items => items.UserId == userId))
-            .Select(item => item.AsDto());
+        var catalogItems = await _catalogClient.GetCatalogItemsAsync();
+        var inventoryItemEntities = await _itemsRepository.GetAllAsync(item => item.UserId == userId);
+
+        var inventoryItemDtos = inventoryItemEntities.Select(inventoryItem =>
+        {
+            var catalogItem = catalogItems.Single(catalogItem => catalogItem.Id == inventoryItem.CatalogItemId);
+            return inventoryItem.AsDto(catalogItem.Name, catalogItem.Description);
+        });
         
-        return Ok(items);
+        return Ok(inventoryItemDtos);
     }
 
     [HttpPost]
