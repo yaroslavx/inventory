@@ -47,6 +47,10 @@
           "dependencies": {
             "Common": {
               "target": "Package",
+              "version": "[1.0.1, )"
+            },
+            "Contracts": {
+              "target": "Package",
               "version": "[1.0.0, )"
             },
             "Microsoft.AspNetCore.OpenApi": {
